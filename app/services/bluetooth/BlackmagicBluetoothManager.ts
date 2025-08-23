@@ -7,6 +7,7 @@
 import { BleManager, Device, BleError, State, Subscription } from 'react-native-ble-plx'
 import { Platform, PermissionsAndroid } from 'react-native'
 import { check, request, PERMISSIONS, RESULTS, PermissionStatus } from 'react-native-permissions'
+import { WebBluetoothAdapter, webBluetoothAdapter } from './WebBluetoothAdapter'
 import {
   IBlackmagicBluetoothService,
   BlackmagicDeviceInfo,
@@ -66,7 +67,9 @@ import {
 } from './types/BlackmagicTypes'
 
 export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
-  private bleManager: BleManager
+  private bleManager?: BleManager
+  private webAdapter?: WebBluetoothAdapter
+  private isWebEnvironment: boolean = Platform.OS === 'web' || typeof window !== 'undefined'
   private scanState: ScanState = ScanState.STOPPED
   private connectedDevices: Map<string, BlackmagicDeviceInfo> = new Map()
   private connectionStates: Map<string, ConnectionState> = new Map()
@@ -101,7 +104,15 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
   private scanTimeout?: NodeJS.Timeout
   
   constructor() {
-    this.bleManager = new BleManager()
+    // Initialize appropriate Bluetooth manager based on environment
+    if (this.isWebEnvironment) {
+      console.log('[BlackmagicBluetoothManager] Initializing web environment with mock adapter')
+      this.webAdapter = webBluetoothAdapter
+    } else {
+      console.log('[BlackmagicBluetoothManager] Initializing native environment with BLE manager')
+      this.bleManager = new BleManager()
+    }
+    
     this.serviceManager = new ServiceManager(this)
     this.cameraControlService = new CameraControlService(this)
     this.fileTransferService = new FileTransferService(this)
@@ -119,10 +130,21 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
   // ============================================================================
 
   private initializeBluetoothStateListener(): void {
-    this.bluetoothStateSubscription = this.bleManager.onStateChange((state) => {
-      this.bluetoothState = state as BluetoothAdapterState
-      this.bluetoothStateCallbacks.forEach(callback => callback(this.bluetoothState))
-    }, true)
+    if (this.isWebEnvironment && this.webAdapter) {
+      // For web environment, use web adapter's state listener
+      this.webAdapter.onBluetoothStateChange((state) => {
+        this.bluetoothState = state
+        this.bluetoothStateCallbacks.forEach(callback => callback(this.bluetoothState))
+      })
+      // Set initial state for web
+      this.bluetoothState = this.webAdapter.getBluetoothState()
+    } else if (this.bleManager) {
+      // For native environment, use BLE manager's state listener
+      this.bluetoothStateSubscription = this.bleManager.onStateChange((state) => {
+        this.bluetoothState = state as BluetoothAdapterState
+        this.bluetoothStateCallbacks.forEach(callback => callback(this.bluetoothState))
+      }, true)
+    }
   }
 
   // ============================================================================
@@ -137,12 +159,34 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     return this.bluetoothState
   }
 
-  getConnectionState(deviceId: string): ConnectionState {
-    return this.connectionStates.get(deviceId) || ConnectionState.DISCONNECTED
+  getConnectionState(deviceId?: string): ConnectionState {
+    if (deviceId) {
+      return this.connectionStates.get(deviceId) || ConnectionState.DISCONNECTED
+    }
+    
+    // If no deviceId provided, return overall connection state
+    if (this.isWebEnvironment && this.webAdapter) {
+      return this.webAdapter.getConnectionState()
+    }
+    
+    const connectedCount = Array.from(this.connectionStates.values())
+      .filter(state => state === ConnectionState.CONNECTED).length
+    return connectedCount > 0 ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED
   }
 
   getConnectedDevices(): BlackmagicDeviceInfo[] {
+    if (this.isWebEnvironment && this.webAdapter) {
+      return this.webAdapter.getConnectedDevices()
+    }
     return Array.from(this.connectedDevices.values())
+  }
+
+  getConnectedDevice(): BlackmagicDeviceInfo | null {
+    if (this.isWebEnvironment && this.webAdapter) {
+      return this.webAdapter.getConnectedDevice()
+    }
+    const devices = this.getConnectedDevices()
+    return devices.length > 0 ? devices[0] : null
   }
 
   // ============================================================================
@@ -151,6 +195,11 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
 
   async checkPermissions(): Promise<BluetoothPermissionState> {
     try {
+      // Web environment always has "permissions" granted for mock functionality
+      if (this.isWebEnvironment) {
+        return BluetoothPermissionState.GRANTED
+      }
+
       if (Platform.OS === 'ios') {
         const bluetoothStatus = await check(PERMISSIONS.IOS.BLUETOOTH)
         return this.mapPermissionStatus(bluetoothStatus)
@@ -185,6 +234,11 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
 
   async requestPermissions(): Promise<boolean> {
     try {
+      // Web environment always has "permissions" granted for mock functionality
+      if (this.isWebEnvironment) {
+        return true
+      }
+
       if (Platform.OS === 'ios') {
         const bluetoothStatus = await request(PERMISSIONS.IOS.BLUETOOTH)
         return bluetoothStatus === RESULTS.GRANTED
@@ -254,24 +308,33 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     this.scanState = ScanState.STARTING
 
     try {
-      const serviceUUIDs = options.serviceUUIDs || Object.values(BLACKMAGIC_SERVICE_UUIDS)
-      
-      this.bleManager.startDeviceScan(
-        serviceUUIDs,
-        {
-          allowDuplicates: options.allowDuplicates || false,
-          scanMode: this.mapScanMode(options.scanMode)
-        },
-        this.handleDeviceFound.bind(this)
-      )
+      if (this.isWebEnvironment && this.webAdapter) {
+        // Use web adapter for web environment
+        await this.webAdapter.startScan(options.timeoutMs || 30000)
+        this.scanState = ScanState.SCANNING
+      } else if (this.bleManager) {
+        // Use native BLE manager for native environment
+        const serviceUUIDs = options.serviceUUIDs || Object.values(BLACKMAGIC_SERVICE_UUIDS)
+        
+        this.bleManager.startDeviceScan(
+          serviceUUIDs,
+          {
+            allowDuplicates: options.allowDuplicates || false,
+            scanMode: this.mapScanMode(options.scanMode)
+          },
+          this.handleDeviceFound.bind(this)
+        )
 
-      this.scanState = ScanState.SCANNING
+        this.scanState = ScanState.SCANNING
 
-      // Set up scan timeout if specified
-      if (options.timeoutMs) {
-        this.scanTimeout = setTimeout(() => {
-          this.stopScan()
-        }, options.timeoutMs)
+        // Set up scan timeout if specified
+        if (options.timeoutMs) {
+          this.scanTimeout = setTimeout(() => {
+            this.stopScan()
+          }, options.timeoutMs)
+        }
+      } else {
+        throw new Error('No Bluetooth manager available')
       }
 
     } catch (error) {
@@ -293,7 +356,14 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     }
 
     try {
-      this.bleManager.stopDeviceScan()
+      if (this.isWebEnvironment && this.webAdapter) {
+        // Use web adapter for web environment
+        await this.webAdapter.stopScan()
+      } else if (this.bleManager) {
+        // Use native BLE manager for native environment
+        this.bleManager.stopDeviceScan()
+      }
+      
       this.scanState = ScanState.STOPPED
     } catch (error) {
       console.error('Error stopping scan:', error)
@@ -347,31 +417,48 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     this.setConnectionState(deviceId, ConnectionState.CONNECTING)
 
     try {
-      const connectPromise = this.bleManager.connectToDevice(deviceId, {
-        autoConnect: options.autoConnect,
-        requestMTU: options.requestMTU,
-        refreshGatt: options.refreshGatt,
-        timeout: options.timeout || 10000
-      })
+      if (this.isWebEnvironment && this.webAdapter) {
+        // Use web adapter for web environment
+        await this.webAdapter.connect(deviceId)
+        const deviceInfo = this.webAdapter.getConnectedDevice()
+        if (!deviceInfo) {
+          throw new Error('Failed to get connected device info')
+        }
+        
+        this.connectedDevices.set(deviceId, deviceInfo)
+        this.setConnectionState(deviceId, ConnectionState.CONNECTED)
+        return deviceInfo
+        
+      } else if (this.bleManager) {
+        // Use native BLE manager for native environment
+        const connectPromise = this.bleManager.connectToDevice(deviceId, {
+          autoConnect: options.autoConnect,
+          requestMTU: options.requestMTU,
+          refreshGatt: options.refreshGatt,
+          timeout: options.timeout || 10000
+        })
 
-      const device = options.timeout
-        ? await BlackmagicBluetoothUtils.createTimeout(
-            connectPromise,
-            options.timeout,
-            BlackmagicBluetoothError.TIMEOUT
-          )
-        : await connectPromise
+        const device = options.timeout
+          ? await BlackmagicBluetoothUtils.createTimeout(
+              connectPromise,
+              options.timeout,
+              BlackmagicBluetoothError.TIMEOUT
+            )
+          : await connectPromise
 
-      // Discover services and characteristics
-      await device.discoverAllServicesAndCharacteristics()
+        // Discover services and characteristics
+        await device.discoverAllServicesAndCharacteristics()
 
-      // Read device information
-      const deviceInfo = await this.createDeviceInfo(device)
-      
-      this.connectedDevices.set(deviceId, deviceInfo)
-      this.setConnectionState(deviceId, ConnectionState.CONNECTED)
+        // Read device information
+        const deviceInfo = await this.createDeviceInfo(device)
+        
+        this.connectedDevices.set(deviceId, deviceInfo)
+        this.setConnectionState(deviceId, ConnectionState.CONNECTED)
 
-      return deviceInfo
+        return deviceInfo
+      } else {
+        throw new Error('No Bluetooth manager available')
+      }
 
     } catch (error) {
       this.setConnectionState(deviceId, ConnectionState.DISCONNECTED)
@@ -389,7 +476,13 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     this.setConnectionState(deviceId, ConnectionState.DISCONNECTING)
 
     try {
-      await this.bleManager.cancelDeviceConnection(deviceId)
+      if (this.isWebEnvironment && this.webAdapter) {
+        // Use web adapter for web environment
+        await this.webAdapter.disconnect(deviceId)
+      } else if (this.bleManager) {
+        // Use native BLE manager for native environment
+        await this.bleManager.cancelDeviceConnection(deviceId)
+      }
       this.connectedDevices.delete(deviceId)
       this.setConnectionState(deviceId, ConnectionState.DISCONNECTED)
       
@@ -625,25 +718,67 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
   }
 
   // ============================================================================
+  // CONVENIENCE METHODS (Aliases for compatibility)
+  // ============================================================================
+
+  async connect(deviceId: string, options?: ConnectionOptions): Promise<BlackmagicDeviceInfo> {
+    return this.connectToDevice(deviceId, options)
+  }
+
+  async disconnect(deviceId?: string): Promise<void> {
+    if (deviceId) {
+      return this.disconnectFromDevice(deviceId)
+    }
+    
+    // If no deviceId provided, disconnect the first connected device
+    const connectedDevices = this.getConnectedDevices()
+    if (connectedDevices.length > 0) {
+      return this.disconnectFromDevice(connectedDevices[0].id)
+    }
+  }
+
+  // Note: startScan and stopScan are already the main methods, no aliases needed
+
+  // ============================================================================
   // EVENT LISTENERS
   // ============================================================================
 
   onDeviceFound(callback: (device: ScannedDevice) => void): () => void {
     this.deviceFoundCallbacks.push(callback)
+    
+    // For web environment, also register with web adapter
+    let webUnsubscribe: (() => void) | undefined
+    if (this.isWebEnvironment && this.webAdapter) {
+      webUnsubscribe = this.webAdapter.onDeviceFound(callback)
+    }
+    
     return () => {
       const index = this.deviceFoundCallbacks.indexOf(callback)
       if (index > -1) {
         this.deviceFoundCallbacks.splice(index, 1)
+      }
+      if (webUnsubscribe) {
+        webUnsubscribe()
       }
     }
   }
 
   onConnectionStateChange(callback: (event: DeviceConnectionEvent) => void): () => void {
     this.connectionStateCallbacks.push(callback)
+    
+    // For web environment, also register with web adapter
+    let webUnsubscribe: (() => void) | undefined
+    if (this.isWebEnvironment && this.webAdapter) {
+      webUnsubscribe = this.webAdapter.onConnectionStateChange(callback)
+    }
+    
     return () => {
       const index = this.connectionStateCallbacks.indexOf(callback)
       if (index > -1) {
         this.connectionStateCallbacks.splice(index, 1)
+      }
+      if (webUnsubscribe) {
+        webUnsubscribe()
       }
     }
   }
