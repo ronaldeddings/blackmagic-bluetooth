@@ -53,6 +53,8 @@ const AppStack = () => {
     theme: { colors },
   } = useAppTheme()
 
+  console.log('AppStack rendering with Blackmagic as initial route')
+
   return (
     <Stack.Navigator
       screenOptions={{

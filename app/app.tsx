@@ -24,7 +24,6 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
-import { AuthProvider } from "./context/AuthContext"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -39,9 +38,16 @@ export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 const prefix = Linking.createURL("/")
 const config = {
   screens: {
-    Login: {
+    Blackmagic: {
       path: "",
+      screens: {
+        Connection: "connect",
+        CameraControl: "camera",
+        FileManager: "files",
+        Settings: "settings",
+      },
     },
+    Login: "login",
     Welcome: "welcome",
     Demo: {
       screens: {
@@ -96,15 +102,13 @@ export function App() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <AppNavigator
-              linking={linking}
-              initialState={initialNavigationState}
-              onStateChange={onNavigationStateChange}
-            />
-          </ThemeProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AppNavigator
+            linking={linking}
+            initialState={undefined}
+            onStateChange={onNavigationStateChange}
+          />
+        </ThemeProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
   )
