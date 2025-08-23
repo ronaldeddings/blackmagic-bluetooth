@@ -25,7 +25,7 @@ import { Button } from '../components/Button'
 import { Screen } from '../components/Screen'
 import { Header } from '../components/Header'
 import { Card } from '../components/Card'
-import { Toggle } from '../components/Toggle'
+import { Toggle } from '../components/Toggle/Toggle'
 import { CameraControlPanel } from '../components/bluetooth/CameraControlPanel'
 
 import { blackmagicBluetoothManager } from '../services/bluetooth/BlackmagicBluetoothManager'
@@ -45,7 +45,7 @@ import {
   CameraMode
 } from '../services/bluetooth/types/BlackmagicTypes'
 
-import { colors, spacing } from '../theme'
+import { colors, spacing } from '@/theme'
 
 const { width } = Dimensions.get('window')
 const cardWidth = (width - spacing.lg * 3) / 2

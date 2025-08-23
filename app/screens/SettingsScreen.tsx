@@ -42,7 +42,7 @@ import {
   Codec
 } from '../services/bluetooth/types/BlackmagicTypes'
 
-import { colors, spacing } from '../theme'
+import { colors, spacing } from '@/theme'
 
 // Storage keys
 const STORAGE_KEYS = {

@@ -38,7 +38,7 @@ import {
   ConnectedDevice
 } from '../services/bluetooth/types/BlackmagicTypes'
 
-import { colors, spacing } from '../theme'
+import { colors, spacing } from '@/theme'
 
 const STORAGE_KEYS = {
   AUTO_CONNECT: '@blackmagic_auto_connect',
