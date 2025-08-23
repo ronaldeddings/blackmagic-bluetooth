@@ -1,14 +1,16 @@
 /**
- * Service Manager - Phase 2 & 3 Implementation
+ * Service Manager - Phase 2, 3 & 5 Implementation
  * 
  * Orchestrates Generic Access Profile (GAP), Device Information, Battery services,
- * and provides interface to HID/Camera Control services
+ * HID/Camera Control services, and Audio services
  */
 
 import { BlackmagicBluetoothManager } from './BlackmagicBluetoothManager'
 import { GAPService, GAPDeviceInfo } from './GAPService'
 import { DeviceInformationService, DeviceInformation } from './DeviceInformationService'
 import { BatteryService, BatteryInfo, BatteryLevelCallback } from './BatteryService'
+import { AudioSourceService } from './AudioSourceService'
+import { AudioSinkService } from './AudioSinkService'
 import { BlackmagicDeviceInfo, BlackmagicBluetoothUtils } from './types/BlackmagicTypes'
 
 export interface CompleteDeviceInfo extends BlackmagicDeviceInfo {
@@ -24,6 +26,8 @@ export interface ServiceAvailability {
   hid: boolean
   fileTransfer: boolean
   objectPush: boolean
+  audioSource: boolean
+  audioSink: boolean
 }
 
 export class ServiceManager {
@@ -31,6 +35,8 @@ export class ServiceManager {
   private gapService: GAPService
   private deviceInformationService: DeviceInformationService
   private batteryService: BatteryService
+  private audioSourceService: AudioSourceService
+  private audioSinkService: AudioSinkService
 
   // Cache for device service availability
   private serviceAvailabilityCache: Map<string, ServiceAvailability> = new Map()
@@ -40,6 +46,8 @@ export class ServiceManager {
     this.gapService = new GAPService(bluetoothManager)
     this.deviceInformationService = new DeviceInformationService(bluetoothManager)
     this.batteryService = new BatteryService(bluetoothManager)
+    this.audioSourceService = new AudioSourceService(bluetoothManager)
+    this.audioSinkService = new AudioSinkService(bluetoothManager)
   }
 
   /**
@@ -56,7 +64,9 @@ export class ServiceManager {
         battery: serviceUUIDs.has('0000180f-0000-1000-8000-00805f9b34fb'),
         hid: serviceUUIDs.has('00001812-0000-1000-8000-00805f9b34fb'),
         fileTransfer: serviceUUIDs.has('00001106-0000-1000-8000-00805f9b34fb'),
-        objectPush: serviceUUIDs.has('00001105-0000-1000-8000-00805f9b34fb')
+        objectPush: serviceUUIDs.has('00001105-0000-1000-8000-00805f9b34fb'),
+        audioSource: serviceUUIDs.has('0000110a-0000-1000-8000-00805f9b34fb'),
+        audioSink: serviceUUIDs.has('0000110b-0000-1000-8000-00805f9b34fb')
       }
 
       // Cache the availability
@@ -73,7 +83,9 @@ export class ServiceManager {
         battery: true,
         hid: true,
         fileTransfer: true,
-        objectPush: true
+        objectPush: true,
+        audioSource: true,
+        audioSink: true
       }
 
       this.serviceAvailabilityCache.set(deviceId, defaultAvailability)
@@ -261,6 +273,8 @@ export class ServiceManager {
    */
   cleanupDevice(deviceId: string): void {
     this.batteryService.cleanupDevice(deviceId)
+    this.audioSourceService.cleanup()
+    this.audioSinkService.cleanup()
     this.serviceAvailabilityCache.delete(deviceId)
   }
 
@@ -269,6 +283,8 @@ export class ServiceManager {
    */
   cleanup(): void {
     this.batteryService.cleanup()
+    this.audioSourceService.cleanup()
+    this.audioSinkService.cleanup()
     this.serviceAvailabilityCache.clear()
   }
 
@@ -283,5 +299,13 @@ export class ServiceManager {
 
   get battery(): BatteryService {
     return this.batteryService
+  }
+
+  get audioSource(): AudioSourceService {
+    return this.audioSourceService
+  }
+
+  get audioSink(): AudioSinkService {
+    return this.audioSinkService
   }
 }

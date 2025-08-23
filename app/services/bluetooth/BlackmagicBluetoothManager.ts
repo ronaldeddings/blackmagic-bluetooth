@@ -27,6 +27,11 @@ import { ServiceManager, CompleteDeviceInfo } from './ServiceManager'
 import { CameraControlService, CameraSettingsCallback } from './CameraControlService'
 import { FileTransferService } from './FileTransferService'
 import { ObjectPushService } from './ObjectPushService'
+import { AudioSourceService } from './AudioSourceService'
+import { AudioSinkService } from './AudioSinkService'
+import { DFUService } from './DFUService'
+import { TimecodeService } from './TimecodeService'  
+import { CameraStatusService } from './CameraStatusService'
 import {
   RecordingState,
   CameraSettings,
@@ -46,7 +51,18 @@ import {
   ObjectPushResult,
   ObjectPushProgress,
   LUTInfo,
-  PresetInfo
+  PresetInfo,
+  IAudioSourceService,
+  IAudioSinkService,
+  AudioConfig,
+  AudioStreamInfo,
+  AudioInputSettings,
+  AudioOutputSettings,
+  AudioMeterData,
+  AudioCapabilities,
+  AudioCodec,
+  AudioDataCallback,
+  AudioLevelCallback
 } from './types/BlackmagicTypes'
 
 export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
@@ -66,6 +82,15 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
   private fileTransferService: FileTransferService
   private objectPushService: ObjectPushService
   
+  // Phase 5 Services
+  private audioSourceService: AudioSourceService
+  private audioSinkService: AudioSinkService
+  
+  // Phase 6 Services
+  private dfuService: DFUService
+  private timecodeService: TimecodeService
+  private cameraStatusService: CameraStatusService
+  
   // Event listeners
   private deviceFoundCallbacks: ((device: ScannedDevice) => void)[] = []
   private connectionStateCallbacks: ((event: DeviceConnectionEvent) => void)[] = []
@@ -81,6 +106,11 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     this.cameraControlService = new CameraControlService(this)
     this.fileTransferService = new FileTransferService(this)
     this.objectPushService = new ObjectPushService(this)
+    this.audioSourceService = new AudioSourceService(this)
+    this.audioSinkService = new AudioSinkService(this)
+    this.dfuService = new DFUService(this)
+    this.timecodeService = new TimecodeService(this)
+    this.cameraStatusService = new CameraStatusService(this)
     this.initializeBluetoothStateListener()
   }
 
@@ -372,6 +402,15 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
       // Clean up Phase 4 service resources for this device
       this.fileTransferService.cleanupDevice(deviceId)
       this.objectPushService.cleanupDevice(deviceId)
+      
+      // Clean up Phase 5 service resources for this device
+      this.audioSourceService.cleanup(deviceId)
+      this.audioSinkService.cleanup(deviceId)
+      
+      // Clean up Phase 6 service resources for this device
+      this.dfuService.cleanupDevice(deviceId)
+      this.timecodeService.cleanupDevice(deviceId)
+      this.cameraStatusService.cleanupDevice(deviceId)
     } catch (error) {
       console.error('Error disconnecting device:', error)
       this.setConnectionState(deviceId, ConnectionState.DISCONNECTED)
@@ -381,6 +420,11 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
       this.cameraControlService.cleanupDevice(deviceId)
       this.fileTransferService.cleanupDevice(deviceId)
       this.objectPushService.cleanupDevice(deviceId)
+      this.audioSourceService.cleanup(deviceId)
+      this.audioSinkService.cleanup(deviceId)
+      this.dfuService.cleanupDevice(deviceId)
+      this.timecodeService.cleanupDevice(deviceId)
+      this.cameraStatusService.cleanupDevice(deviceId)
     }
   }
 
@@ -896,6 +940,399 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
   }
 
   // ============================================================================
+  // PHASE 5 AUDIO METHODS
+  // ============================================================================
+
+  // Audio Source Service methods (UUID 0x110A)
+
+  /**
+   * Start streaming audio from camera
+   */
+  async startAudioStream(deviceId: string, config: AudioConfig): Promise<string> {
+    return this.audioSourceService.startAudioStream(deviceId, config)
+  }
+
+  /**
+   * Stop audio stream
+   */
+  async stopAudioStream(deviceId: string, streamId: string): Promise<void> {
+    return this.audioSourceService.stopAudioStream(deviceId, streamId)
+  }
+
+  /**
+   * Pause audio stream
+   */
+  async pauseAudioStream(deviceId: string, streamId: string): Promise<void> {
+    return this.audioSourceService.pauseAudioStream(deviceId, streamId)
+  }
+
+  /**
+   * Resume audio stream
+   */
+  async resumeAudioStream(deviceId: string, streamId: string): Promise<void> {
+    return this.audioSourceService.resumeAudioStream(deviceId, streamId)
+  }
+
+  /**
+   * Get active audio streams
+   */
+  async getActiveAudioStreams(deviceId: string): Promise<AudioStreamInfo[]> {
+    return this.audioSourceService.getActiveStreams(deviceId)
+  }
+
+  /**
+   * Get audio stream information
+   */
+  async getAudioStreamInfo(deviceId: string, streamId: string): Promise<AudioStreamInfo> {
+    return this.audioSourceService.getStreamInfo(deviceId, streamId)
+  }
+
+  /**
+   * Configure audio input settings
+   */
+  async configureAudioInput(deviceId: string, settings: AudioInputSettings): Promise<void> {
+    return this.audioSourceService.configureAudioInput(deviceId, settings)
+  }
+
+  /**
+   * Get audio input settings
+   */
+  async getAudioInputSettings(deviceId: string): Promise<AudioInputSettings> {
+    return this.audioSourceService.getAudioInputSettings(deviceId)
+  }
+
+  /**
+   * Subscribe to real-time audio level updates
+   */
+  async subscribeToAudioLevels(
+    deviceId: string,
+    callback: AudioLevelCallback
+  ): Promise<() => void> {
+    return this.audioSourceService.subscribeToAudioLevels(deviceId, callback)
+  }
+
+  /**
+   * Get current audio levels (one-time read)
+   */
+  async getAudioLevels(deviceId: string): Promise<AudioMeterData> {
+    return this.audioSourceService.getAudioLevels(deviceId)
+  }
+
+  /**
+   * Subscribe to raw audio data stream
+   */
+  async subscribeToAudioData(
+    deviceId: string,
+    streamId: string,
+    callback: AudioDataCallback
+  ): Promise<() => void> {
+    return this.audioSourceService.subscribeToAudioData(deviceId, streamId, callback)
+  }
+
+  /**
+   * Get audio capabilities of the device
+   */
+  async getAudioCapabilities(deviceId: string): Promise<AudioCapabilities> {
+    return this.audioSourceService.getAudioCapabilities(deviceId)
+  }
+
+  // Audio Sink Service methods (UUID 0x110B)
+
+  /**
+   * Send raw audio data to camera
+   */
+  async sendAudioData(deviceId: string, audioData: ArrayBuffer): Promise<void> {
+    return this.audioSinkService.sendAudioData(deviceId, audioData)
+  }
+
+  /**
+   * Start talkback session (send audio to camera)
+   */
+  async startTalkback(deviceId: string, config: AudioConfig): Promise<string> {
+    return this.audioSinkService.startTalkback(deviceId, config)
+  }
+
+  /**
+   * Stop talkback session
+   */
+  async stopTalkback(deviceId: string, talkbackId: string): Promise<void> {
+    return this.audioSinkService.stopTalkback(deviceId, talkbackId)
+  }
+
+  /**
+   * Configure audio output settings
+   */
+  async configureAudioOutput(deviceId: string, settings: AudioOutputSettings): Promise<void> {
+    return this.audioSinkService.configureAudioOutput(deviceId, settings)
+  }
+
+  /**
+   * Get audio output settings
+   */
+  async getAudioOutputSettings(deviceId: string): Promise<AudioOutputSettings> {
+    return this.audioSinkService.getAudioOutputSettings(deviceId)
+  }
+
+  /**
+   * Get supported audio codecs for sink
+   */
+  async getSupportedAudioCodecs(deviceId: string): Promise<AudioCodec[]> {
+    return this.audioSinkService.getSupportedCodecs(deviceId)
+  }
+
+  /**
+   * Negotiate audio codec with camera
+   */
+  async negotiateAudioCodec(deviceId: string, preferredCodec: AudioCodec): Promise<AudioCodec> {
+    return this.audioSinkService.negotiateCodec(deviceId, preferredCodec)
+  }
+
+  /**
+   * Get active talkback sessions
+   */
+  async getTalkbackSessions(deviceId: string): Promise<string[]> {
+    return this.audioSinkService.getTalkbackSessions(deviceId)
+  }
+
+  /**
+   * Configure talkback settings
+   */
+  async configureTalkback(deviceId: string, settings: {
+    level: number
+    codec: AudioCodec
+    quality: any
+  }): Promise<void> {
+    return this.audioSinkService.configureTalkback(deviceId, settings)
+  }
+
+  // ============================================================================
+  // PHASE 6 ADVANCED FEATURES METHODS
+  // ============================================================================
+
+  // DFU (Device Firmware Update) Service Methods
+
+  /**
+   * Detect firmware version and device information
+   */
+  async detectFirmwareVersion(deviceId: string) {
+    return await this.dfuService.detectFirmwareVersion(deviceId)
+  }
+
+  /**
+   * Check if DFU service is available on device
+   */
+  async isDFUServiceAvailable(deviceId: string): Promise<boolean> {
+    return await this.dfuService.isDFUServiceAvailable(deviceId)
+  }
+
+  /**
+   * Check for available firmware updates
+   */
+  async checkForFirmwareUpdates(deviceId: string) {
+    return await this.dfuService.checkForUpdates(deviceId)
+  }
+
+  /**
+   * Perform Device Firmware Update
+   */
+  async performDFUUpdate(deviceId: string, firmwareFile: any, options: any = {}) {
+    return await this.dfuService.performDFUUpdate(deviceId, firmwareFile, options)
+  }
+
+  /**
+   * Get DFU update progress
+   */
+  getDFUProgress(deviceId: string) {
+    return this.dfuService.getUpdateProgress(deviceId)
+  }
+
+  /**
+   * Cancel firmware update
+   */
+  async cancelFirmwareUpdate(deviceId: string): Promise<void> {
+    return await this.dfuService.cancelUpdate(deviceId)
+  }
+
+  // Timecode Service Methods
+
+  /**
+   * Read current timecode from camera
+   */
+  async readCurrentTimecode(deviceId: string) {
+    return await this.timecodeService.readCurrentTimecode(deviceId)
+  }
+
+  /**
+   * Set camera timecode
+   */
+  async setTimecode(deviceId: string, timecode: any): Promise<void> {
+    return await this.timecodeService.setTimecode(deviceId, timecode)
+  }
+
+  /**
+   * Set timecode to current system time
+   */
+  async setTimecodeToNow(deviceId: string, format?: any): Promise<void> {
+    return await this.timecodeService.setTimecodeToNow(deviceId, format)
+  }
+
+  /**
+   * Configure timecode settings
+   */
+  async configureTimecode(deviceId: string, settings: any): Promise<void> {
+    return await this.timecodeService.configureTimecode(deviceId, settings)
+  }
+
+  /**
+   * Get current timecode settings
+   */
+  async getTimecodeSettings(deviceId: string) {
+    return await this.timecodeService.getTimecodeSettings(deviceId)
+  }
+
+  /**
+   * Subscribe to continuous timecode updates
+   */
+  async subscribeToTimecode(deviceId: string, callback: (timecode: any) => void): Promise<() => void> {
+    return await this.timecodeService.subscribeToTimecode(deviceId, callback)
+  }
+
+  /**
+   * Create multi-camera sync session
+   */
+  async createTimecodeSync(sessionId: string, masterId: string, slaveIds: string[], syncTolerance?: number): Promise<void> {
+    return await this.timecodeService.createSyncSession(sessionId, masterId, slaveIds, syncTolerance)
+  }
+
+  /**
+   * Sync all cameras to master timecode
+   */
+  async syncCameras(sessionId: string): Promise<void> {
+    return await this.timecodeService.syncCameras(sessionId)
+  }
+
+  /**
+   * Get sync status for session
+   */
+  getTimeccodeSyncStatus(sessionId: string) {
+    return this.timecodeService.getSyncStatus(sessionId)
+  }
+
+  /**
+   * Stop sync session
+   */
+  async stopTimecodeSync(sessionId: string): Promise<void> {
+    return await this.timecodeService.stopSyncSession(sessionId)
+  }
+
+  /**
+   * Get cached timecode
+   */
+  getCachedTimecode(deviceId: string) {
+    return this.timecodeService.getCachedTimecode(deviceId)
+  }
+
+  // Camera Status Monitoring Service Methods
+
+  /**
+   * Start comprehensive status monitoring
+   */
+  async startStatusMonitoring(deviceId: string, callback: any, options: any = {}): Promise<void> {
+    return await this.cameraStatusService.startStatusMonitoring(deviceId, callback, options)
+  }
+
+  /**
+   * Stop status monitoring
+   */
+  stopStatusMonitoring(deviceId: string): void {
+    return this.cameraStatusService.stopStatusMonitoring(deviceId)
+  }
+
+  /**
+   * Get current status snapshot
+   */
+  async getCurrentCameraStatus(deviceId: string) {
+    return await this.cameraStatusService.getCurrentStatus(deviceId)
+  }
+
+  /**
+   * Get cached status snapshot
+   */
+  getCachedCameraStatus(deviceId: string) {
+    return this.cameraStatusService.getCachedStatus(deviceId)
+  }
+
+  /**
+   * Monitor recording status
+   */
+  async monitorRecordingStatus(deviceId: string) {
+    return await this.cameraStatusService.monitorRecordingStatus(deviceId)
+  }
+
+  /**
+   * Monitor storage status  
+   */
+  async monitorStorageStatus(deviceId: string) {
+    return await this.cameraStatusService.monitorStorageStatus(deviceId)
+  }
+
+  /**
+   * Monitor temperature readings
+   */
+  async monitorTemperature(deviceId: string) {
+    return await this.cameraStatusService.monitorTemperature(deviceId)
+  }
+
+  /**
+   * Monitor error states
+   */
+  async monitorCameraErrors(deviceId: string) {
+    return await this.cameraStatusService.monitorErrors(deviceId)
+  }
+
+  /**
+   * Monitor system health
+   */
+  async monitorSystemHealth(deviceId: string) {
+    return await this.cameraStatusService.monitorSystemHealth(deviceId)
+  }
+
+  /**
+   * Monitor power status
+   */
+  async monitorPowerStatus(deviceId: string) {
+    return await this.cameraStatusService.monitorPowerStatus(deviceId)
+  }
+
+  /**
+   * Subscribe to error notifications
+   */
+  async subscribeToErrors(deviceId: string, callback: any): Promise<() => void> {
+    return await this.cameraStatusService.subscribeToErrors(deviceId, callback)
+  }
+
+  /**
+   * Subscribe to temperature alerts
+   */
+  async subscribeToTemperatureAlerts(deviceId: string, callback: any): Promise<() => void> {
+    return await this.cameraStatusService.subscribeToTemperatureAlerts(deviceId, callback)
+  }
+
+  /**
+   * Get error history
+   */
+  getErrorHistory(deviceId: string) {
+    return this.cameraStatusService.getErrorHistory(deviceId)
+  }
+
+  /**
+   * Clear resolved errors
+   */
+  async clearResolvedErrors(deviceId: string): Promise<void> {
+    return await this.cameraStatusService.clearResolvedErrors(deviceId)
+  }
+
+  // ============================================================================
   // CLEANUP
   // ============================================================================
 
@@ -920,6 +1357,15 @@ export class BlackmagicBluetoothManager implements IBlackmagicBluetoothService {
     // Clean up Phase 4 services
     this.fileTransferService.cleanup()
     this.objectPushService.cleanup()
+    
+    // Clean up Phase 5 services
+    this.audioSourceService.cleanup()
+    this.audioSinkService.cleanup()
+    
+    // Clean up Phase 6 services
+    this.dfuService.cleanup()
+    this.timecodeService.cleanup()
+    this.cameraStatusService.cleanup()
 
     // Clean up subscriptions
     if (this.bluetoothStateSubscription) {

@@ -17,5 +17,9 @@ export { CameraControlService, CameraSettingsCallback } from './CameraControlSer
 export { FileTransferService } from './FileTransferService'
 export { ObjectPushService } from './ObjectPushService'
 
+// Phase 5 Services
+export { AudioSourceService } from './AudioSourceService'
+export { AudioSinkService } from './AudioSinkService'
+
 // Types
 export * from './types/BlackmagicTypes'

@@ -592,3 +592,251 @@ export const DEFAULT_BUTTON_MAPPINGS: ButtonMapping[] = [
     category: 'whiteBalance'
   }
 ]
+
+// ============================================================================
+// PHASE 5: AUDIO CAPABILITIES TYPES
+// ============================================================================
+
+/**
+ * Audio stream states
+ */
+export enum AudioStreamState {
+  STOPPED = 'stopped',
+  STARTING = 'starting',
+  STREAMING = 'streaming',
+  STOPPING = 'stopping',
+  PAUSED = 'paused'
+}
+
+/**
+ * Audio quality levels
+ */
+export enum AudioQuality {
+  LOW = 'low',      // 8 kHz, 8-bit
+  MEDIUM = 'medium', // 16 kHz, 16-bit
+  HIGH = 'high',    // 44.1 kHz, 16-bit
+  ULTRA = 'ultra'   // 48 kHz, 24-bit
+}
+
+/**
+ * Audio codec types
+ */
+export enum AudioCodec {
+  PCM = 'pcm',
+  AAC = 'aac',
+  MP3 = 'mp3',
+  OPUS = 'opus'
+}
+
+/**
+ * Audio channel configuration
+ */
+export enum AudioChannelConfig {
+  MONO = 'mono',
+  STEREO = 'stereo',
+  SURROUND_5_1 = '5.1',
+  SURROUND_7_1 = '7.1'
+}
+
+/**
+ * Audio input/output levels
+ */
+export interface AudioLevel {
+  level: number      // dB level (-60 to 0)
+  peak: number       // Peak level
+  channel: number    // Channel index (0 = left, 1 = right)
+  timestamp: Date    // When the level was measured
+}
+
+/**
+ * Audio configuration for streaming
+ */
+export interface AudioConfig {
+  quality: AudioQuality
+  codec: AudioCodec
+  channels: AudioChannelConfig
+  sampleRate: number    // Hz
+  bitDepth: number      // bits
+  bitRate?: number      // bits per second (for compressed audio)
+  bufferSize?: number   // Buffer size in samples
+}
+
+/**
+ * Audio stream information
+ */
+export interface AudioStreamInfo {
+  id: string
+  deviceId: string
+  state: AudioStreamState
+  config: AudioConfig
+  levels: AudioLevel[]
+  latency: number      // ms
+  droppedFrames: number
+  totalFrames: number
+  duration: number     // seconds
+  startTime?: Date
+  lastActivity: Date
+}
+
+/**
+ * Audio input settings for camera
+ */
+export interface AudioInputSettings {
+  // Microphone settings
+  micGain: number          // 0-100
+  micMute: boolean
+  phantomPower: boolean    // For professional microphones
+  lowCutFilter: boolean    // High-pass filter
+  windNoise: boolean       // Wind noise reduction
+  
+  // Input selection
+  inputSource: 'internal' | 'external' | 'xlr' | 'line'
+  monitoring: boolean      // Audio monitoring through headphones
+  monitorLevel: number     // 0-100
+  
+  // Processing
+  autoGain: boolean
+  compressor: boolean
+  limiter: boolean
+  noiseSuppression: boolean
+}
+
+/**
+ * Audio output settings for camera
+ */
+export interface AudioOutputSettings {
+  // Output levels
+  outputLevel: number      // 0-100
+  outputMute: boolean
+  
+  // Output routing
+  outputDestination: 'headphones' | 'line' | 'both'
+  talkbackEnabled: boolean
+  talkbackLevel: number    // 0-100
+  
+  // Monitoring
+  playbackMonitoring: boolean
+  playbackLevel: number    // 0-100
+}
+
+/**
+ * Audio meter data
+ */
+export interface AudioMeterData {
+  levels: AudioLevel[]
+  peakHold: number[]       // Peak hold for each channel
+  vuMeter: number[]        // VU meter levels
+  overload: boolean[]      // Per-channel overload indicators
+  timestamp: Date
+}
+
+/**
+ * Audio Source Service interface - UUID 0x110A
+ */
+export interface IAudioSourceService {
+  // Stream management
+  startAudioStream(deviceId: string, config: AudioConfig): Promise<string>
+  stopAudioStream(deviceId: string, streamId: string): Promise<void>
+  pauseAudioStream(deviceId: string, streamId: string): Promise<void>
+  resumeAudioStream(deviceId: string, streamId: string): Promise<void>
+  
+  // Stream information
+  getActiveStreams(deviceId: string): Promise<AudioStreamInfo[]>
+  getStreamInfo(deviceId: string, streamId: string): Promise<AudioStreamInfo>
+  
+  // Input configuration
+  configureAudioInput(deviceId: string, settings: AudioInputSettings): Promise<void>
+  getAudioInputSettings(deviceId: string): Promise<AudioInputSettings>
+  
+  // Audio level monitoring
+  subscribeToAudioLevels(
+    deviceId: string,
+    callback: (meterData: AudioMeterData) => void
+  ): Promise<() => void>
+  getAudioLevels(deviceId: string): Promise<AudioMeterData>
+  
+  // Audio data streaming
+  subscribeToAudioData(
+    deviceId: string,
+    streamId: string,
+    callback: (audioData: ArrayBuffer) => void
+  ): Promise<() => void>
+}
+
+/**
+ * Audio Sink Service interface - UUID 0x110B
+ */
+export interface IAudioSinkService {
+  // Audio output to camera
+  sendAudioData(deviceId: string, audioData: ArrayBuffer): Promise<void>
+  startTalkback(deviceId: string, config: AudioConfig): Promise<string>
+  stopTalkback(deviceId: string, talkbackId: string): Promise<void>
+  
+  // Output configuration
+  configureAudioOutput(deviceId: string, settings: AudioOutputSettings): Promise<void>
+  getAudioOutputSettings(deviceId: string): Promise<AudioOutputSettings>
+  
+  // Codec negotiation
+  getSupportedCodecs(deviceId: string): Promise<AudioCodec[]>
+  negotiateCodec(deviceId: string, preferredCodec: AudioCodec): Promise<AudioCodec>
+  
+  // Talkback management
+  getTalkbackSessions(deviceId: string): Promise<string[]>
+  configureTalkback(deviceId: string, settings: {
+    level: number
+    codec: AudioCodec
+    quality: AudioQuality
+  }): Promise<void>
+}
+
+/**
+ * Audio event types
+ */
+export interface AudioEvent {
+  deviceId: string
+  type: 'streamStateChanged' | 'levelChanged' | 'codecChanged' | 'error' | 'talkbackStateChanged'
+  data: any
+  timestamp: Date
+}
+
+/**
+ * Audio stream callback types
+ */
+export type AudioDataCallback = (audioData: ArrayBuffer) => void
+export type AudioLevelCallback = (meterData: AudioMeterData) => void
+export type AudioEventCallback = (event: AudioEvent) => void
+
+/**
+ * Audio capabilities supported by device
+ */
+export interface AudioCapabilities {
+  // Supported formats
+  supportedCodecs: AudioCodec[]
+  supportedQualities: AudioQuality[]
+  supportedChannelConfigs: AudioChannelConfig[]
+  
+  // Supported sample rates and bit depths
+  supportedSampleRates: number[]
+  supportedBitDepths: number[]
+  
+  // Hardware capabilities
+  hasInternalMicrophone: boolean
+  hasExternalInput: boolean
+  hasXLRInput: boolean
+  hasPhantomPower: boolean
+  hasHeadphoneOutput: boolean
+  hasLineOutput: boolean
+  
+  // Processing capabilities
+  hasAutoGain: boolean
+  hasNoiseReduction: boolean
+  hasCompressor: boolean
+  hasLimiter: boolean
+  hasLowCutFilter: boolean
+  
+  // Streaming capabilities
+  maxConcurrentStreams: number
+  maxBitRate: number
+  minLatency: number      // milliseconds
+  bufferSizes: number[]   // Available buffer sizes
+}
