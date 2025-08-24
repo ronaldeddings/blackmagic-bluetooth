@@ -1,0 +1,809 @@
+.firmware-update-manager {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Header */
+.manager-header {
+  padding: 20px 24px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.manager-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--error-background);
+  color: var(--error-color);
+  border-bottom: 1px solid var(--error-border);
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  color: var(--error-color);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+}
+
+/* Tabs */
+.manager-tabs {
+  display: flex;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.manager-tabs button {
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.manager-tabs button:hover {
+  background: var(--hover-color);
+  color: var(--text-primary);
+}
+
+.manager-tabs button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: var(--background-color);
+}
+
+/* Tab Content */
+.tab-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Devices Tab */
+.devices-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.check-updates-btn,
+.batch-update-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.check-updates-btn {
+  background: var(--background-color);
+  color: var(--text-primary);
+}
+
+.check-updates-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+}
+
+.check-updates-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.batch-update-btn {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.batch-update-btn:hover:not(:disabled) {
+  background: var(--success-hover);
+}
+
+/* Update Options */
+.update-options {
+  padding: 20px 24px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.update-options h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.options-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+/* Devices List */
+.devices-list {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.device-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: box-shadow 0.2s ease;
+}
+
+.device-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.device-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.device-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.device-details .model {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.device-details .version {
+  background: var(--background-color);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color);
+}
+
+.device-details .last-checked {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.device-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.device-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.check-btn {
+  background: var(--background-color);
+  color: var(--text-primary);
+}
+
+.check-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+}
+
+.update-btn {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.update-btn:hover:not(:disabled) {
+  background: var(--success-hover);
+}
+
+.cancel-btn {
+  background: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+}
+
+.cancel-btn:hover {
+  background: var(--error-hover);
+}
+
+/* Available Updates */
+.available-updates {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.available-updates h5 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.updates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.firmware-option {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.firmware-option:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.firmware-option.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.firmware-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.firmware-header .version {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.firmware-badges {
+  display: flex;
+  gap: 6px;
+}
+
+.beta-badge {
+  background: var(--warning-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.size-badge {
+  background: var(--text-muted);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+}
+
+.firmware-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.release-date {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.changelog {
+  font-size: 0.8rem;
+}
+
+.changelog-item {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.changelog-more {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Validation Report */
+.validation-report {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.validation-report.pass {
+  background: var(--success-background);
+  border-color: var(--success-border);
+}
+
+.validation-report.warning {
+  background: var(--warning-background);
+  border-color: var(--warning-border);
+}
+
+.validation-report.fail {
+  background: var(--error-background);
+  border-color: var(--error-border);
+}
+
+.validation-report h5 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.validation-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-item .label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.summary-item .status {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status.pass {
+  background: var(--success-color);
+  color: white;
+}
+
+.status.warning {
+  background: var(--warning-color);
+  color: white;
+}
+
+.status.fail {
+  background: var(--error-color);
+  color: white;
+}
+
+.validation-counts {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.count {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.count.passed {
+  color: var(--success-color);
+}
+
+.count.warnings {
+  color: var(--warning-color);
+}
+
+.count.errors {
+  color: var(--error-color);
+}
+
+.recommendations {
+  margin-top: 12px;
+}
+
+.recommendations h6 {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recommendations ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.recommendations li {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+/* Update Progress */
+.update-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.update-progress h5 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-header .status {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--primary-color);
+  color: white;
+  text-transform: capitalize;
+}
+
+.progress-text {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+  transition: width 0.3s ease;
+}
+
+.progress-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.current-operation {
+  color: var(--text-secondary);
+}
+
+.eta {
+  color: var(--text-muted);
+}
+
+.progress-error {
+  margin-top: 8px;
+  color: var(--error-color);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* No Updates */
+.no-updates {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Repositories Tab */
+.repositories-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.repositories-tab .tab-header {
+  padding: 20px 24px;
+}
+
+.repositories-tab .tab-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.add-repo-btn {
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.add-repo-btn:hover {
+  background: var(--primary-hover);
+}
+
+.repositories-list {
+  flex: 1;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.repository-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.repo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 16px;
+}
+
+.repo-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.repo-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.repo-details .type {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.type.official {
+  background: var(--success-color);
+  color: white;
+}
+
+.type.beta {
+  background: var(--warning-color);
+  color: white;
+}
+
+.type.custom {
+  background: var(--accent-color);
+  color: white;
+}
+
+.repo-details .url {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.repo-controls .toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.repo-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.auth-required {
+  color: var(--warning-color);
+  font-weight: 500;
+}
+
+/* History Tab */
+.history-tab {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.coming-soon {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .tab-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .summary-stats {
+    justify-content: center;
+  }
+
+  .device-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .device-actions {
+    align-self: stretch;
+  }
+
+  .device-actions button {
+    flex: 1;
+  }
+
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .manager-tabs {
+    overflow-x: auto;
+  }
+
+  .manager-tabs button {
+    white-space: nowrap;
+    min-width: 120px;
+  }
+
+  .summary-stats {
+    gap: 16px;
+  }
+
+  .validation-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .firmware-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .repo-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .repo-status {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

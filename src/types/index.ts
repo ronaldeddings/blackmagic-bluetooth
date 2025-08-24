@@ -48,6 +48,15 @@ export interface DeviceConnectionState {
   error: string | null;
 }
 
+export interface CameraCommand {
+  commandId: string;
+  command: string;
+  parameters: Record<string, any>;
+  deviceId?: string;
+  timestamp?: number;
+  id?: string;
+}
+
 export interface ServiceDiscoveryResult {
   serviceUuid: string;
   serviceName: string;
