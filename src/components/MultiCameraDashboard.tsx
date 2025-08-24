@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import { CameraGrid } from './CameraGrid';
 import { BulkOperationsPanel } from './BulkOperationsPanel';
 import { MultiDeviceConnectionManager, CameraConnection } from '../services/bluetooth/MultiDeviceManager';
