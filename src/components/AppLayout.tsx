@@ -2,61 +2,15 @@ import React, { useState, useCallback } from 'react';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import NavigationSidebar from './NavigationSidebar';
-import MultiCameraDashboard from './MultiCameraDashboard';
-import CameraGrid from './CameraGrid';
-import MultiViewfinderGrid from './MultiViewfinderGrid';
-import PresetLibrary from './PresetLibrary';
-import FirmwareUpdateManager from './FirmwareUpdateManager';
-import DiagnosticsPanel from './DiagnosticsPanel';
-import ProtocolAnalyzer from './ProtocolAnalyzer';
-import SetupWizard from './SetupWizard';
-
-// Theme definitions
-const lightTheme = {
-  colors: {
-    primary: '#007bff',
-    secondary: '#6c757d',
-    success: '#28a745',
-    danger: '#dc3545',
-    warning: '#ffc107',
-    info: '#17a2b8',
-    light: '#f8f9fa',
-    dark: '#343a40',
-    background: '#ffffff',
-    surface: '#f8f9fa',
-    text: '#212529',
-    textSecondary: '#6c757d',
-    border: '#dee2e6',
-    shadow: 'rgba(0,0,0,0.1)'
-  },
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '16px',
-    lg: '24px',
-    xl: '32px',
-    xxl: '48px'
-  },
-  borderRadius: '8px',
-  transitions: {
-    default: '0.3s ease',
-    fast: '0.15s ease',
-    slow: '0.5s ease'
-  }
-};
-
-const darkTheme = {
-  ...lightTheme,
-  colors: {
-    ...lightTheme.colors,
-    background: '#1a1a1a',
-    surface: '#2d2d2d',
-    text: '#ffffff',
-    textSecondary: '#b0b0b0',
-    border: '#404040',
-    shadow: 'rgba(255,255,255,0.1)'
-  }
-};
+import { MultiCameraDashboard } from './MultiCameraDashboard';
+import { CameraGrid } from './CameraGrid';
+import { MultiViewfinderGrid } from './MultiViewfinderGrid';
+import { PresetLibrary } from './PresetLibrary';
+import { FirmwareUpdateManager } from './FirmwareUpdateManager';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { ProtocolAnalyzer } from './ProtocolAnalyzer';
+import { SetupWizard } from './SetupWizard';
+import { lightTheme, darkTheme } from '../styles/theme';
 
 const GlobalStyle = createGlobalStyle`
   * {

@@ -1,7 +1,6 @@
 import React from 'react';
 import AppLayout from './components/AppLayout';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
 
 // Create a React Query client
 const queryClient = new QueryClient({
@@ -25,7 +24,6 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AppLayout />
-      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
     </QueryClientProvider>
   );
 };
